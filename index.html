@@ -1,17 +1,313 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
 <head>
   <meta charset="UTF-8">
-  <title>Sistem Manajemen Kos</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistem Manajemen Kos</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
   <style>
-    body, html { margin:0; padding:0; height:100%; }
-    iframe { border:none; width:100%; height:100%; }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background-color: #f4f6f9; overflow-x: hidden; }
+    .top-bar { display: none; position: fixed; top: 0; width: 100%; z-index: 1050; height: 60px; }
+    .bottom-nav { display: none; position: fixed; bottom: 0; width: 100%; background: #ffffff; box-shadow: 0 -3px 15px rgba(0,0,0,0.08); z-index: 1050; border-top: 1px solid #e2e8f0; }
+    .bottom-nav .nav-item { background: transparent !important; text-align: center; padding: 10px 0 5px 0; font-size: 11px; flex: 1; color: #94a3b8; text-decoration: none; cursor: pointer; transition: 0.2s; border: none !important; outline: none !important; }
+    .bottom-nav .nav-item i { font-size: 1.4rem; display: block; margin-bottom: 2px; transition: 0.2s; }
+    .bottom-nav .nav-item.active, .bottom-nav .nav-item:hover { color: #3b82f6; font-weight: 600; }
+    .bottom-nav .nav-item.active i { color: #3b82f6; transform: translateY(-2px); }
+    .sidebar { height: 100vh; position: fixed; width: 260px; background-color: #ffffff; z-index: 1040; box-shadow: 2px 0 10px rgba(0,0,0,0.05); border-right: 1px solid #e2e8f0; display: flex; flex-direction: column; }
+    .sidebar-brand { color: #1e293b; font-weight: bold; text-align: center; padding: 20px 10px; font-size: 1.2rem; border-bottom: 1px solid #e2e8f0; }
+    .menu-link { color: #475569; text-decoration: none; padding: 12px 25px; display: block; font-size: 0.95rem; border-left: 4px solid transparent; transition: 0.2s; cursor: pointer; }
+    .menu-link:hover, .menu-link.active { background-color: #f1f5f9; color: #3b82f6; border-left-color: #3b82f6; font-weight: 600; }
+    .logout-link { color: #dc3545; text-decoration: none; padding: 15px 25px; display: block; font-size: 0.95rem; cursor: pointer; transition: 0.2s; }
+    .logout-link:hover { background-color: #fef2f2; color: #dc3545; }
+    .main-content { margin-left: 260px; padding: 30px; transition: 0.3s; }
+    .btn-float { position: fixed; bottom: 30px; right: 30px; z-index: 1030; width: 55px; height: 55px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; box-shadow: 0 4px 10px rgba(0,0,0,0.25); transition: transform 0.2s; }
+    .btn-float:hover { transform: scale(1.1); }
+    .carousel-item img { height: 220px; object-fit: cover; border-radius: 8px; }
+    .card-dashboard { border-radius: 12px; border: none; box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
+    @media (max-width: 768px) {
+      .sidebar { display: none !important; }
+      .top-bar { display: flex !important; align-items: center; justify-content: flex-start; }
+      .bottom-nav { display: flex !important; }
+      .main-content { margin-left: 0 !important; padding: 15px; padding-top: 75px; padding-bottom: 90px !important; }
+      .btn-float { bottom: 85px; right: 20px; } 
+    }
   </style>
 </head>
 <body>
-  <!-- Ganti URL di bawah dengan link Web App hasil deploy dari Apps Script -->
-  <iframe src="https://script.google.com/macros/s/AKfycbw4f79KR8NmD2eB9AQ2lvG-70qx-rMaw7-5H86hw6FBCg2JPHWGnPgTS_Nh9TFdFgs76g/exec" allowfullscreen></iframe>
+
+  <!-- TOAST NOTIFICATION -->
+  <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1080;">
+    <div id="appToast" class="toast align-items-center text-white border-0 shadow" role="alert" aria-live="assertive" aria-atomic="true">
+      <div class="d-flex"><div class="toast-body fw-semibold px-3 py-2 fs-6" id="toastMessage"></div><button type="button" class="btn-close btn-close-white me-3 m-auto" data-bs-dismiss="toast"></button></div>
+    </div>
+  </div>
+
+  <!-- OVERLAY LOADING -->
+  <div id="loadingOverlay" class="position-fixed w-100 h-100 d-none justify-content-center align-items-center" style="background: rgba(255,255,255,0.8); z-index: 9999; top: 0; left: 0;">
+    <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;"></div>
+  </div>
+
+  <!-- VIEW: LOGIN -->
+  <div id="view-login" class="container d-flex justify-content-center align-items-center" style="min-height: 100vh;">
+    <div class="card p-4 shadow-sm border-0" style="width: 100%; max-width: 400px; border-radius: 15px;">
+      <div class="text-center mb-4"><i class="bi bi-house-gear-fill text-primary" style="font-size: 3rem;"></i><h4 class="mt-2 fw-bold text-dark">Manajemen Kos</h4></div>
+      <form id="form-login">
+        <div class="mb-3"><label class="form-label small fw-semibold">Email</label><input type="email" id="login-email" class="form-control form-control-lg fs-6"></div>
+        <div class="mb-3"><label class="form-label small fw-semibold">Password</label><input type="password" id="login-password" class="form-control form-control-lg fs-6"></div>
+        <button type="button" class="btn btn-primary btn-lg w-100 fs-6 shadow-sm mb-3" onclick="handleLogin()">Masuk</button>
+        <div class="text-center"><span class="small text-muted">Belum punya akun? <a href="#" onclick="switchView('view-registrasi')" class="text-decoration-none">Registrasi Admin</a></span></div>
+      </form>
+    </div>
+  </div>
+
+  <!-- VIEW: REGISTRASI -->
+  <div id="view-registrasi" class="container py-5 d-none">
+    <div class="row justify-content-center"><div class="col-md-8 col-lg-6"><div class="card p-4 shadow-sm border-0" style="border-radius: 15px;"><h4 class="fw-bold text-center mb-4">Registrasi Admin</h4><form id="form-reg"><div class="mb-3"><label class="form-label small fw-semibold">Nama Lengkap</label><input type="text" id="reg-nama" class="form-control"></div><div class="row"><div class="col-md-6 mb-3"><label class="form-label small fw-semibold">Provinsi</label><select id="reg-provinsi" class="form-select" onchange="filterKabupaten('reg')"><option value="">Pilih</option></select></div><div class="col-md-6 mb-3"><label class="form-label small fw-semibold">Kabupaten</label><select id="reg-kabupaten" class="form-select" onchange="filterKecamatan('reg')"><option value="">Pilih</option></select></div></div><div class="row"><div class="col-md-6 mb-3"><label class="form-label small fw-semibold">Kecamatan</label><select id="reg-kecamatan" class="form-select" onchange="filterKelurahan('reg')"><option value="">Pilih</option></select></div><div class="col-md-6 mb-3"><label class="form-label small fw-semibold">Kelurahan</label><select id="reg-kelurahan" class="form-select" onchange="isiKodePos('reg')"><option value="">Pilih</option></select></div></div><div class="mb-3"><label class="form-label small fw-semibold">Kode Pos</label><input type="text" id="reg-kodepos" class="form-control" readonly></div><div class="mb-3"><label class="form-label small fw-semibold">Alamat Lengkap</label><textarea id="reg-alamat" class="form-control" rows="2"></textarea></div><div class="row"><div class="col-md-6 mb-3"><label class="form-label small fw-semibold">Email</label><input type="email" id="reg-email" class="form-control"></div><div class="col-md-6 mb-3"><label class="form-label small fw-semibold">Nomor Telepon</label><input type="tel" id="reg-phone" class="form-control"></div></div><div class="mb-4"><label class="form-label small fw-semibold">Password</label><input type="password" id="reg-password" class="form-control"></div><button type="button" class="btn btn-primary w-100 shadow-sm mb-2" onclick="submitRegistrasi()">Daftar</button><button type="button" class="btn btn-light w-100 border text-muted" onclick="switchView('view-login')">Kembali ke Login</button></form></div></div></div>
+  </div>
+
+  <!-- APLIKASI UTAMA -->
+  <div id="main-app-layout" class="d-none">
+    <div class="top-bar bg-white shadow-sm px-3 border-bottom d-md-none"><button class="btn btn-light me-3 border-0 bg-transparent" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarOffcanvasMobile"><i class="bi bi-list fs-3 text-dark"></i></button><h5 class="m-0 fw-bold text-dark text-start" id="mobile-top-title">Dashboard</h5></div>
+    <div class="bottom-nav d-md-none"><a class="nav-item menu-link active" onclick="navigate('dash')"><i class="bi bi-speedometer2"></i>Dash</a><a class="nav-item menu-link admin-only" onclick="navigate('properti')"><i class="bi bi-building"></i>Properti</a><a class="nav-item menu-link admin-only" onclick="navigate('kamar')"><i class="bi bi-door-open"></i>Kamar</a><a class="nav-item menu-link admin-only" onclick="navigate('penyewa')"><i class="bi bi-people"></i>Penyewa</a></div>
+    
+    <div class="sidebar d-none d-md-flex"><div class="sidebar-brand"><i class="bi bi-house-gear-fill me-2 text-primary"></i>KOS MANAGER</div><div class="flex-grow-1 overflow-auto pt-3"><a class="menu-link active" onclick="navigate('dash')"><i class="bi bi-speedometer2 me-2"></i> Dashboard</a><a class="menu-link admin-only" onclick="navigate('properti')"><i class="bi bi-building me-2"></i> Properti</a><a class="menu-link admin-only" onclick="navigate('kamar')"><i class="bi bi-door-open me-2"></i> Kamar</a><a class="menu-link admin-only" onclick="navigate('penyewa')"><i class="bi bi-people me-2"></i> Penyewa</a><a class="menu-link admin-only" onclick="navigate('pembayaran')"><i class="bi bi-wallet2 me-2"></i> Pembayaran</a><a class="menu-link admin-only" onclick="navigate('pengeluaran')"><i class="bi bi-graph-down-arrow me-2"></i> Pengeluaran</a></div><div class="border-top border-secondary-subtle mt-auto pb-4 pt-2"><a class="logout-link" onclick="logout()"><i class="bi bi-box-arrow-right me-2"></i> Keluar</a></div></div>
+    
+    <div class="offcanvas offcanvas-start bg-white d-md-none" tabindex="-1" id="sidebarOffcanvasMobile" style="width: 260px; z-index: 1060;"><div class="offcanvas-header border-bottom border-secondary-subtle"><h5 class="offcanvas-title text-dark fw-bold"><i class="bi bi-house-gear-fill me-2 text-primary"></i>Kos Manager</h5><button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button></div><div class="offcanvas-body p-0 d-flex flex-column h-100 pb-4"><div class="pt-2"><a class="menu-link admin-only" onclick="navigate('pembayaran')" data-bs-dismiss="offcanvas"><i class="bi bi-wallet2 me-2"></i> Pembayaran</a><a class="menu-link admin-only" onclick="navigate('pengeluaran')" data-bs-dismiss="offcanvas"><i class="bi bi-graph-down-arrow me-2"></i> Pengeluaran</a></div><div class="border-top border-secondary-subtle mt-2 pt-2"><a class="logout-link" onclick="logout()" data-bs-dismiss="offcanvas"><i class="bi bi-box-arrow-right me-2"></i> Keluar</a></div></div></div>
+
+    <!-- MAIN CONTENT -->
+    <div class="main-content">
+      <!-- DASHBOARD -->
+      <div id="subview-dash" class="app-subview">
+        <div class="row g-3 mb-4"><div class="col-6 col-lg-3"><div class="card card-dashboard p-3 border-start border-success border-4"><div class="small fw-bold">Pemasukan</div><div class="fs-5 fw-bold text-success" id="dash-pemasukan">Rp 0</div></div></div><div class="col-6 col-lg-3"><div class="card card-dashboard p-3 border-start border-danger border-4"><div class="small fw-bold">Pengeluaran</div><div class="fs-5 fw-bold text-danger" id="dash-pengeluaran">Rp 0</div></div></div><div class="col-6 col-lg-3"><div class="card card-dashboard p-3 border-start border-primary border-4"><div class="small fw-bold">Total Properti</div><div class="fs-5 fw-bold text-primary" id="dash-total-prop">0</div></div></div><div class="col-6 col-lg-3"><div class="card card-dashboard p-3 border-start border-warning border-4"><div class="small fw-bold">Total Kamar</div><div class="fs-5 fw-bold text-warning" id="dash-total-kmr">0</div></div></div></div>
+        <div class="card border-0 shadow-sm p-4 mb-4 rounded-4"><h6 class="fw-bold mb-3"><i class="bi bi-list-task me-2 text-primary"></i>Listing Kamar</h6><div id="container-daftar-properti" class="row g-3">Memuat...</div></div>
+      </div>
+      <!-- LISTS -->
+      <div id="subview-properti" class="app-subview d-none"><div class="table-responsive d-none d-md-block shadow-sm rounded bg-white p-3"><table class="table table-hover align-middle"><thead class="table-light"><tr><th>Nama Properti</th><th>Alamat</th><th>Telp</th><th>Fasilitas</th><th class="text-center">Aksi</th></tr></thead><tbody id="tb-properti"></tbody></table></div><div class="d-md-none" id="cd-properti"></div><button class="btn btn-primary btn-float admin-only" onclick="openModal('modalProperti', 'form-properti')" title="Tambah"><i class="bi bi-plus-lg"></i></button></div>
+      <div id="subview-kamar" class="app-subview d-none"><div class="table-responsive d-none d-md-block shadow-sm rounded bg-white p-3"><table class="table table-hover align-middle"><thead class="table-light"><tr><th>Kamar</th><th>Harga</th><th>Status</th><th class="text-center">Aksi</th></tr></thead><tbody id="tb-kamar"></tbody></table></div><div class="d-md-none" id="cd-kamar"></div><button class="btn btn-primary btn-float admin-only" onclick="openModal('modalKamar', 'form-kamar')" title="Tambah"><i class="bi bi-plus-lg"></i></button></div>
+      <div id="subview-penyewa" class="app-subview d-none"><div class="table-responsive d-none d-md-block shadow-sm rounded bg-white p-3"><table class="table table-hover align-middle"><thead class="table-light"><tr><th>Nama</th><th>Properti & Kamar</th><th>Telp</th><th class="text-center">Aksi</th></tr></thead><tbody id="tb-penyewa"></tbody></table></div><div class="d-md-none" id="cd-penyewa"></div><button class="btn btn-primary btn-float admin-only" onclick="openModal('modalPenyewa', 'form-penyewa')" title="Tambah"><i class="bi bi-plus-lg"></i></button></div>
+      <div id="subview-pembayaran" class="app-subview d-none"><div class="table-responsive d-none d-md-block shadow-sm rounded bg-white p-3"><table class="table table-hover align-middle"><thead class="table-light"><tr><th>Invoice</th><th>Tgl</th><th>Penyewa</th><th>Jumlah</th><th class="text-center">Aksi</th></tr></thead><tbody id="tb-pembayaran"></tbody></table></div><div class="d-md-none" id="cd-pembayaran"></div><button class="btn btn-success btn-float admin-only" onclick="openModal('modalPembayaran', 'form-pembayaran'); generateInvoiceNum();" title="Catat"><i class="bi bi-plus-lg"></i></button></div>
+      <div id="subview-pengeluaran" class="app-subview d-none"><div class="table-responsive d-none d-md-block shadow-sm rounded bg-white p-3"><table class="table table-hover align-middle"><thead class="table-light"><tr><th>ID</th><th>Tgl</th><th>Jenis</th><th>Ket</th><th>Jumlah</th><th class="text-center">Aksi</th></tr></thead><tbody id="tb-pengeluaran"></tbody></table></div><div class="d-md-none" id="cd-pengeluaran"></div><button class="btn btn-danger btn-float admin-only" onclick="openModal('modalPengeluaran', 'form-pengeluaran'); generateExpenseNum();" title="Catat"><i class="bi bi-plus-lg"></i></button></div>
+    </div>
+  </div>
+
+  <!-- ==================== MODALS FORM ==================== -->
+  <div class="modal fade" id="modalProperti" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content"><div class="modal-header bg-light"><h5 class="modal-title fw-bold">Form Properti</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><form id="form-properti"><input type="hidden" id="prop-id"><div class="mb-3"><label class="form-label small fw-semibold">Nama Properti</label><input type="text" id="prop-nama" class="form-control"></div><div class="row"><div class="col-md-6 mb-3"><label class="form-label small">Koordinat</label><input type="text" id="prop-koordinat" class="form-control"></div><div class="col-md-6 mb-3"><label class="form-label small">Telepon</label><input type="tel" id="prop-phone" class="form-control"></div></div><div class="row"><div class="col-md-6 mb-3"><label class="form-label small">Provinsi</label><select id="prop-provinsi" class="form-select" onchange="filterKabupaten('prop')"></select></div><div class="col-md-6 mb-3"><label class="form-label small">Kabupaten</label><select id="prop-kabupaten" class="form-select" onchange="filterKecamatan('prop')"></select></div></div><div class="row"><div class="col-md-6 mb-3"><label class="form-label small">Kecamatan</label><select id="prop-kecamatan" class="form-select" onchange="filterKelurahan('prop')"></select></div><div class="col-md-6 mb-3"><label class="form-label small">Kelurahan</label><select id="prop-kelurahan" class="form-select" onchange="isiKodePos('prop')"></select></div></div><div class="mb-3"><label class="form-label small">Kode Pos</label><input type="text" id="prop-kodepos" class="form-control" readonly></div><div class="mb-3"><label class="form-label small">Alamat Lengkap</label><textarea id="prop-alamat" class="form-control" rows="2"></textarea></div><div class="mb-3"><label class="form-label small d-block">Fasilitas</label><div class="form-check form-check-inline"><input class="form-check-input" type="checkbox" name="prop-fas" value="WiFi"> <label class="small">WiFi</label></div><div class="form-check form-check-inline"><input class="form-check-input" type="checkbox" name="prop-fas" value="Parkir"> <label class="small">Parkir</label></div><div class="form-check form-check-inline"><input class="form-check-input" type="checkbox" name="prop-fas" value="Dapur"> <label class="small">Dapur</label></div></div><div class="mb-4"><label class="form-label small">Foto Properti</label><input type="file" id="prop-photos-input" class="form-control" multiple></div><button type="button" class="btn btn-primary w-100" onclick="submitProperti()">Simpan Data</button></form></div></div></div></div>
+  <div class="modal fade" id="modalKamar" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content"><div class="modal-header bg-light"><h5 class="modal-title fw-bold">Form Kamar</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><form id="form-kamar"><input type="hidden" id="kmr-id"><div class="row"><div class="col-md-6 mb-3"><label class="form-label small">Pilih Properti</label><select id="kmr-nama-properti" class="form-select"></select></div><div class="col-md-6 mb-3"><label class="form-label small fw-semibold">Nama Kamar</label><input type="text" id="kmr-nama" class="form-control"></div></div><div class="row"><div class="col-md-6 mb-3"><label class="form-label small">Harga (Rp)</label><input type="number" id="kmr-harga" class="form-control"></div><div class="col-md-6 mb-3"><label class="form-label small">Status</label><select id="kmr-status" class="form-select"><option value="Tersedia">Tersedia</option><option value="Terisi">Terisi</option><option value="Perbaikan">Perbaikan</option></select></div></div><div class="mb-3"><label class="form-label small">Deskripsi</label><textarea id="kmr-deskripsi" class="form-control" rows="2"></textarea></div><div class="mb-3"><label class="form-label small d-block">Fasilitas</label><div class="form-check form-check-inline"><input class="form-check-input" type="checkbox" name="kmr-fas" value="AC"> <label class="small">AC</label></div><div class="form-check form-check-inline"><input class="form-check-input" type="checkbox" name="kmr-fas" value="KM Dalam"> <label class="small">KM Dalam</label></div></div><div class="mb-4"><label class="form-label small">Foto Kamar</label><input type="file" id="kmr-photos-input" class="form-control" multiple></div><button type="button" class="btn btn-primary w-100" onclick="submitKamar()">Simpan Data</button></form></div></div></div></div>
+  <div class="modal fade" id="modalPenyewa" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content"><div class="modal-header bg-light"><h5 class="modal-title fw-bold">Form Penyewa</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><form id="form-penyewa"><input type="hidden" id="pny-id"><div class="row"><div class="col-md-6 mb-3"><label class="form-label small">Properti</label><select id="pny-properti" class="form-select" onchange="filterKamarPenyewa()"></select></div><div class="col-md-6 mb-3"><label class="form-label small">Kamar</label><select id="pny-kamar" class="form-select"></select></div></div><div class="row"><div class="col-md-6 mb-3"><label class="form-label small">No KTP</label><input type="text" id="pny-ktp" class="form-control"></div><div class="col-md-6 mb-3"><label class="form-label small">Foto KTP</label><input type="file" id="pny-photo-ktp-input" class="form-control"></div></div><div class="row"><div class="col-md-4 mb-3"><label class="form-label small fw-semibold">Nama Lengkap</label><input type="text" id="pny-nama" class="form-control"></div><div class="col-md-4 mb-3"><label class="form-label small">Telp</label><input type="tel" id="pny-phone" class="form-control"></div><div class="col-md-4 mb-3"><label class="form-label small">Email</label><input type="email" id="pny-email" class="form-control"></div></div><div class="row"><div class="col-md-6 mb-3"><label class="form-label small">Provinsi</label><select id="pny-provinsi" class="form-select" onchange="filterKabupaten('pny')"></select></div><div class="col-md-6 mb-3"><label class="form-label small">Kabupaten</label><select id="pny-kabupaten" class="form-select" onchange="filterKecamatan('pny')"></select></div></div><div class="row"><div class="col-md-6 mb-3"><label class="form-label small">Kecamatan</label><select id="pny-kecamatan" class="form-select" onchange="filterKelurahan('pny')"></select></div><div class="col-md-6 mb-3"><label class="form-label small">Kelurahan</label><select id="pny-kelurahan" class="form-select" onchange="isiKodePos('pny')"></select></div></div><div class="mb-3"><label class="form-label small">Kode Pos</label><input type="text" id="pny-kodepos" class="form-control" readonly></div><div class="mb-4"><label class="form-label small">Alamat Lengkap</label><textarea id="pny-alamat" class="form-control" rows="2"></textarea></div><button type="button" class="btn btn-primary w-100" onclick="submitPenyewa()">Simpan Data</button></form></div></div></div></div>
+  <div class="modal fade" id="modalPembayaran" tabindex="-1"><div class="modal-dialog modal-dialog-scrollable"><div class="modal-content"><div class="modal-header bg-light"><h5 class="modal-title fw-bold">Form Pembayaran</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><form id="form-pembayaran"><input type="hidden" id="pay-id"><div class="row"><div class="col-md-6 mb-3"><label class="form-label small">No Invoice</label><input type="text" id="pay-invoice" class="form-control" readonly></div><div class="col-md-6 mb-3"><label class="form-label small fw-semibold">Tanggal</label><input type="date" id="pay-tanggal" class="form-control"></div></div><div class="mb-3"><label class="form-label small">Penyewa</label><select id="pay-penyewa" class="form-select" onchange="autoFillPembayaran()"></select></div><div class="mb-3"><label class="form-label small">Cara Pembayaran</label><select id="pay-cara" class="form-select"><option value="Transfer">Transfer</option><option value="Cash">Cash</option></select></div><div class="mb-4"><label class="form-label small">Jumlah (Rp)</label><input type="number" id="pay-jumlah" class="form-control"></div><button type="button" class="btn btn-success w-100" onclick="submitPembayaran()">Simpan Pembayaran</button></form></div></div></div></div>
+  <div class="modal fade" id="modalPengeluaran" tabindex="-1"><div class="modal-dialog modal-dialog-scrollable"><div class="modal-content"><div class="modal-header bg-light"><h5 class="modal-title fw-bold">Form Pengeluaran</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><form id="form-pengeluaran"><input type="hidden" id="exp-id-hidden"><div class="row"><div class="col-md-6 mb-3"><label class="form-label small">ID Pengeluaran</label><input type="text" id="exp-id" class="form-control" readonly></div><div class="col-md-6 mb-3"><label class="form-label small fw-semibold">Tanggal</label><input type="date" id="exp-tanggal" class="form-control"></div></div><div class="row"><div class="col-md-6 mb-3"><label class="form-label small">Jenis</label><select id="exp-jenis" class="form-select"><option value="Listrik/Air">Listrik/Air</option><option value="Perbaikan">Perbaikan</option><option value="Lainnya">Lainnya</option></select></div><div class="col-md-6 mb-3"><label class="form-label small">Jumlah (Rp)</label><input type="number" id="exp-jumlah" class="form-control"></div></div><div class="mb-3"><label class="form-label small">Keterangan</label><input type="text" id="exp-keterangan" class="form-control"></div><div class="mb-4"><label class="form-label small">Bukti/Nota</label><input type="file" id="exp-photo-input" class="form-control"></div><button type="button" class="btn btn-danger w-100" onclick="submitPengeluaran()">Catat Pengeluaran</button></form></div></div></div></div>
+  
+  <div class="modal fade" id="modalDetail" tabindex="-1"><div class="modal-dialog modal-dialog-centered modal-dialog-scrollable"><div class="modal-content"><div class="modal-header bg-light"><h5 class="modal-title fw-bold text-primary" id="modalDetailTitle">Rincian Data</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body" id="modalDetailBody"></div></div></div></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  
+  <script>
+    // ==============================================================
+    // KONFIGURASI API (GANTI URL INI DENGAN URL WEB APP ANDA)
+    // ==============================================================
+    const API_URL = "https://script.google.com/macros/s/AKfycbynMuH4LB7ALrg4ytxUI-gYmzEff85aamY-VAlMIi9MR2sPLYEuMp4grl_kpqP_PHe46A/exec";
+    
+    let masterWilayah = []; let appDataCache = {}; let currentUser = null;
+
+    // FUNGSI FETCH API (PENGGANTI google.script.run)
+    async function fetchAPI(action, payload = {}) {
+      document.getElementById('loadingOverlay').classList.remove('d-none');
+      document.getElementById('loadingOverlay').classList.add('d-flex');
+      try {
+        let response = await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ action: action, payload: payload })
+        });
+        let result = await response.json();
+        document.getElementById('loadingOverlay').classList.remove('d-flex');
+        document.getElementById('loadingOverlay').classList.add('d-none');
+        
+        if (result.status === "error") throw new Error(result.message);
+        return result.data;
+      } catch (error) {
+        document.getElementById('loadingOverlay').classList.remove('d-flex');
+        document.getElementById('loadingOverlay').classList.add('d-none');
+        throw error;
+      }
+    }
+
+    window.onload = async function() {
+      let sesiAktif = localStorage.getItem('sesi_kos');
+      if(sesiAktif) { currentUser = JSON.parse(sesiAktif); switchView('main-app-layout'); applyRoleAccess(); navigate('dash'); }
+      try { masterWilayah = await fetchAPI('getWilayahData'); initDropdownWilayah('reg'); initDropdownWilayah('prop'); initDropdownWilayah('pny'); } catch(e){}
+    };
+
+    function showToast(msg, isSuccess = true) {
+      try {
+        let t = document.getElementById('appToast'); if(!t){ alert(msg); return;} document.getElementById('toastMessage').innerText = msg;
+        t.className = `toast align-items-center text-white border-0 shadow ${isSuccess?'bg-success':'bg-danger'}`; new bootstrap.Toast(t, {delay: 3000}).show();
+      } catch(e) { alert(msg); }
+    }
+
+    function switchView(vid) { ['view-login','view-registrasi','main-app-layout'].forEach(v => document.getElementById(v).classList.add('d-none')); document.getElementById(vid).classList.remove('d-none'); }
+
+    function navigate(view) {
+      document.querySelectorAll('.app-subview').forEach(e => e.classList.add('d-none')); document.querySelectorAll('.menu-link').forEach(e => e.classList.remove('active'));
+      document.getElementById('subview-'+view).classList.remove('d-none');
+      let sm = document.querySelectorAll(`[onclick="navigate('${view}')"]`); sm.forEach(e => e.classList.add('active'));
+      const t = {'dash':'Dashboard','properti':'Properti','kamar':'Kamar','penyewa':'Penyewa','pembayaran':'Pembayaran','pengeluaran':'Pengeluaran'}; document.getElementById('mobile-top-title').innerText = t[view];
+      
+      let offcv = document.getElementById('sidebarOffcanvasMobile'); if (offcv) { let bsOffcv = bootstrap.Offcanvas.getInstance(offcv); if(bsOffcv) bsOffcv.hide(); }
+      if(view === 'dash') loadDashboardAndLists();
+    }
+
+    function applyRoleAccess() { if(!currentUser) return; let isAdmin = currentUser.role !== 'Tamu'; document.querySelectorAll('.admin-only').forEach(el => { el.style.display = isAdmin ? '' : 'none'; }); }
+
+    async function handleLogin() {
+      let em = document.getElementById('login-email').value, pw = document.getElementById('login-password').value; if(!em||!pw){ showToast('Isi form login!',false); return; }
+      try {
+        let r = await fetchAPI('login', {email: em, password: pw});
+        if(r && r.status === "SUCCESS"){ currentUser = {nama: r.nama, role: r.role, email: em}; localStorage.setItem('sesi_kos', JSON.stringify(currentUser)); switchView('main-app-layout'); applyRoleAccess(); navigate('dash'); showToast('Login berhasil!', true); } 
+        else { showToast('Email atau Password Salah', false); }
+      } catch(e) { showToast(e.message, false); }
+    }
+    
+    async function submitRegistrasi() {
+      let payload = { nama: document.getElementById('reg-nama').value, provinsi: document.getElementById('reg-provinsi').value, kabupaten: document.getElementById('reg-kabupaten').value, kecamatan: document.getElementById('reg-kecamatan').value, kelurahan: document.getElementById('reg-kelurahan').value, kodepos: document.getElementById('reg-kodepos').value, alamat: document.getElementById('reg-alamat').value, email: document.getElementById('reg-email').value, phone: document.getElementById('reg-phone').value, password: document.getElementById('reg-password').value };
+      try { await fetchAPI('register', payload); showToast('Registrasi Berhasil! Silakan masuk.', true); document.getElementById('form-reg').reset(); switchView('view-login'); } catch(e) { showToast(e.message, false); }
+    }
+
+    function logout(){ localStorage.removeItem('sesi_kos'); currentUser = null; document.getElementById('form-login').reset(); switchView('view-login'); }
+
+    // WILAYAH DROPDOWN LOGIC
+    function initDropdownWilayah(prefix) { let provSel = document.getElementById(prefix + '-provinsi'); if(!provSel) return; provSel.innerHTML = '<option value="">Pilih</option>'; masterWilayah.forEach(row => { if(row[1] && row[1].trim().toLowerCase() === 'provinsi') provSel.innerHTML += `<option value="${row[0].trim()}">${row[0].trim()}</option>`; }); }
+    function filterKabupaten(prefix) { let provVal = document.getElementById(prefix + '-provinsi').value, kabSel = document.getElementById(prefix + '-kabupaten'); if(!kabSel) return; kabSel.innerHTML = '<option value="">Pilih</option>'; let row = masterWilayah.find(r => r[0].trim() === provVal && r[1].trim().toLowerCase() === 'provinsi'); if(row && row[2]) row[2].split(',').forEach(k => { let kN = k.trim(); if(kN) kabSel.innerHTML += `<option value="${kN}">${kN}</option>`; }); filterKecamatan(prefix); }
+    function filterKecamatan(prefix) { let kabVal = document.getElementById(prefix + '-kabupaten').value, kecSel = document.getElementById(prefix + '-kecamatan'); if(!kecSel) return; kecSel.innerHTML = '<option value="">Pilih</option>'; let row = masterWilayah.find(r => r[0].trim() === kabVal && (r[1].trim().toLowerCase() === 'kota' || r[1].trim().toLowerCase() === 'kabupaten')); if(row && row[2]) row[2].split(',').forEach(k => { let kN = k.trim(); if(kN) kecSel.innerHTML += `<option value="${kN}">${kN}</option>`; }); filterKelurahan(prefix); }
+    function filterKelurahan(prefix) { let kecVal = document.getElementById(prefix + '-kecamatan').value, kelSel = document.getElementById(prefix + '-kelurahan'); if(!kelSel) return; kelSel.innerHTML = '<option value="">Pilih</option>'; let kodePosEl = document.getElementById(prefix + '-kodepos'); if(kodePosEl) kodePosEl.value = ''; let row = masterWilayah.find(r => r[0].trim() === kecVal && r[1].trim().toLowerCase() === 'kecamatan'); if(row && row[2]) row[2].split(',').forEach(k => { let str = k.trim(); if(str) { let pts = str.split('-'); kelSel.innerHTML += `<option value="${pts.slice(1).join('-').trim()}" data-kodepos="${pts[0].trim()}">${pts.slice(1).join('-').trim()}</option>`; } }); }
+    function isiKodePos(prefix) { let kelSel = document.getElementById(prefix + '-kelurahan'), opt = kelSel.options[kelSel.selectedIndex], kodePosEl = document.getElementById(prefix + '-kodepos'); if(kodePosEl) kodePosEl.value = (opt && opt.dataset.kodepos) ? opt.dataset.kodepos : ''; }
+
+    // MODAL UTILS
+    function openModal(modalId, formId) { document.getElementById(formId).reset(); let hInput = document.querySelector(`#${formId} input[type="hidden"]`); if(hInput) hInput.value = ''; new bootstrap.Modal(document.getElementById(modalId)).show(); }
+    function closeModal(modalId) { let inst = bootstrap.Modal.getInstance(document.getElementById(modalId)); if(inst) inst.hide(); }
+
+    function getBase64Files(input) { return new Promise(res => { let f = input.files; if(f.length===0) res([]); let arr = [], c = 0; for(let i=0; i<f.length; i++){ let r = new FileReader(); r.onload = e => { arr.push({data:e.target.result, name:f[i].name}); c++; if(c===f.length) res(arr); }; r.readAsDataURL(f[i]); } }); }
+
+    async function askDelete(sheetName, id) { if(confirm('Hapus data ini secara permanen?')){ try { let res = await fetchAPI('deleteData', {sheetName: sheetName, id: id}); showToast(res, true); loadDashboardAndLists(); } catch(e) { showToast(e.message, false); } } }
+
+    function showDetail(type, id) {
+      let title = document.getElementById('modalDetailTitle'), body = document.getElementById('modalDetailBody'); title.innerText = "Informasi " + type; body.innerHTML = ''; let data, html = '';
+      if(type === 'Properti') { data = appDataCache.properti.find(x => x[0] === id); if(!data) return; let photos = data[11] ? data[11].split('|') : []; let imgHtml = photos.length > 0 ? photos.map(url => `<img src="${url}" class="img-fluid rounded mb-2 w-100" style="max-height:200px; object-fit:cover;">`).join('') : '<div class="alert alert-secondary text-center small">Tidak ada foto properti</div>'; html = `${imgHtml}<table class="table table-sm mt-3"><tr><th width="35%">Nama</th><td class="fw-bold text-primary">${data[1]}</td></tr><tr><th>Telepon</th><td>${data[9]}</td></tr><tr><th>Fasilitas</th><td>${data[10]}</td></tr><tr><th>Alamat</th><td>${data[8]}<br><span class="text-muted small">${data[7]}, ${data[6]}, ${data[5]}, ${data[4]}, ${data[3]}</span></td></tr><tr><th>Koordinat</th><td><a href="https://maps.google.com/?q=${data[2]}" target="_blank" class="text-decoration-none">${data[2]} <i class="bi bi-box-arrow-up-right"></i></a></td></tr></table>`; }
+      else if(type === 'Kamar') { data = appDataCache.kamar.find(x => x[0] === id); if(!data) return; let photos = data[7] ? data[7].split('|') : []; let imgHtml = photos.length > 0 ? photos.map(url => `<img src="${url}" class="img-fluid rounded mb-2 w-100" style="max-height:200px; object-fit:cover;">`).join('') : '<div class="alert alert-secondary text-center small">Tidak ada foto kamar</div>'; html = `${imgHtml}<table class="table table-sm mt-3"><tr><th width="35%">Properti</th><td>${data[1]}</td></tr><tr><th>Kamar</th><td class="fw-bold">${data[2]}</td></tr><tr><th>Harga</th><td class="fw-bold text-success">Rp ${Number(data[4]).toLocaleString()}</td></tr><tr><th>Status</th><td><span class="badge ${data[5]==='Tersedia'?'bg-success':'bg-danger'}">${data[5]}</span></td></tr><tr><th>Fasilitas</th><td>${data[6]}</td></tr><tr><th>Deskripsi</th><td>${data[3]}</td></tr></table>`; }
+      else if(type === 'Penyewa') { data = appDataCache.penyewa.find(x => x[0] === id); if(!data) return; let imgHtml = data[2] ? `<img src="${data[2]}" class="img-fluid rounded mb-3 w-100" style="max-height:250px; object-fit:cover;" alt="Foto KTP">` : `<div class="alert alert-secondary text-center small">Tidak ada foto KTP</div>`; html = `${imgHtml}<table class="table table-sm"><tr><th width="35%">Nama</th><td class="fw-bold">${data[3]}</td></tr><tr><th>No KTP</th><td>${data[1]}</td></tr><tr><th>Telp/WA</th><td>${data[10]}</td></tr><tr><th>Email</th><td>${data[11]}</td></tr><tr><th>Properti</th><td>${data[12]}</td></tr><tr><th>Kamar</th><td class="fw-bold text-primary">${data[13]}</td></tr><tr><th>Alamat Asal</th><td>${data[9]}<br><span class="text-muted small">${data[8]}, ${data[7]}, ${data[6]}, ${data[5]}, ${data[4]}</span></td></tr></table>`; }
+      else if(type === 'Pembayaran') { data = appDataCache.pembayaran.find(x => x[0] === id); if(!data) return; let pny = appDataCache.penyewa.find(p => p[0] === data[2]); let namaPny = pny ? pny[3] : data[2]; html = `<div class="text-center mb-4"><i class="bi bi-check-circle-fill text-success" style="font-size: 3rem;"></i><h5 class="mt-2 fw-bold text-success">PEMBAYARAN LUNAS</h5></div><table class="table table-sm"><tr><th width="40%">No Invoice</th><td>${data[0]}</td></tr><tr><th>Tanggal</th><td>${data[1]}</td></tr><tr><th>Penyewa</th><td class="fw-bold">${namaPny}</td></tr><tr><th>Cara Bayar</th><td>${data[4]}</td></tr><tr><th>Total Jumlah</th><td class="fw-bold fs-5 text-dark">Rp ${Number(data[3]).toLocaleString()}</td></tr></table>`; }
+      else if(type === 'Pengeluaran') { data = appDataCache.pengeluaran.find(x => x[0] === id); if(!data) return; let imgHtml = data[5] ? `<img src="${data[5]}" class="img-fluid rounded mt-2 w-100" style="max-height:300px; object-fit:contain;" alt="Bukti/Nota">` : `<div class="alert alert-secondary mt-2 text-center small">Tidak ada foto nota</div>`; html = `<table class="table table-sm"><tr><th width="35%">ID</th><td>${data[0]}</td></tr><tr><th>Tanggal</th><td>${data[1]}</td></tr><tr><th>Jenis</th><td>${data[2]}</td></tr><tr><th>Keterangan</th><td>${data[3]}</td></tr><tr><th>Jumlah</th><td class="fw-bold fs-5 text-danger">Rp ${Number(data[4]).toLocaleString()}</td></tr></table><hr><h6 class="fw-bold small">Bukti Pembayaran:</h6>${imgHtml}`; }
+      body.innerHTML = html; new bootstrap.Modal(document.getElementById('modalDetail')).show();
+    }
+
+    function editProperti(id) { let d = appDataCache.properti.find(x=>x[0]===id); if(!d) return; document.getElementById('prop-id').value = d[0]; document.getElementById('prop-nama').value = d[1]; document.getElementById('prop-koordinat').value = d[2]; document.getElementById('prop-phone').value = d[9]; document.getElementById('prop-alamat').value = d[8]; new bootstrap.Modal(document.getElementById('modalProperti')).show(); }
+    function editKamar(id) { let d = appDataCache.kamar.find(x=>x[0]===id); if(!d) return; document.getElementById('kmr-id').value = d[0]; document.getElementById('kmr-nama-properti').value = d[1]; document.getElementById('kmr-nama').value = d[2]; document.getElementById('kmr-harga').value = d[4]; document.getElementById('kmr-status').value = d[5]; document.getElementById('kmr-deskripsi').value = d[3]; new bootstrap.Modal(document.getElementById('modalKamar')).show(); }
+    function editPenyewa(id) { let d = appDataCache.penyewa.find(x=>x[0]===id); if(!d) return; document.getElementById('pny-id').value = d[0]; document.getElementById('pny-ktp').value = d[1]; document.getElementById('pny-nama').value = d[3]; document.getElementById('pny-phone').value = d[10]; document.getElementById('pny-email').value = d[11]; document.getElementById('pny-alamat').value = d[9]; new bootstrap.Modal(document.getElementById('modalPenyewa')).show(); }
+    function editPembayaran(id) { let d = appDataCache.pembayaran.find(x=>x[0]===id); if(!d) return; document.getElementById('pay-id').value = d[0]; document.getElementById('pay-invoice').value = d[0]; document.getElementById('pay-tanggal').value = d[1]; document.getElementById('pay-penyewa').value = d[2]; document.getElementById('pay-cara').value = d[4]; document.getElementById('pay-jumlah').value = d[3]; new bootstrap.Modal(document.getElementById('modalPembayaran')).show(); }
+    function editPengeluaran(id) { let d = appDataCache.pengeluaran.find(x=>x[0]===id); if(!d) return; document.getElementById('exp-id-hidden').value = d[0]; document.getElementById('exp-id').value = d[0]; document.getElementById('exp-tanggal').value = d[1]; document.getElementById('exp-jenis').value = d[2]; document.getElementById('exp-keterangan').value = d[3]; document.getElementById('exp-jumlah').value = d[4]; new bootstrap.Modal(document.getElementById('modalPengeluaran')).show(); }
+
+    async function loadDashboardAndLists() {
+      let userEmail = currentUser ? currentUser.email : "";
+      try {
+        let json = await new Promise((res, rej) => google.script.run.withSuccessHandler(res).withFailureHandler(rej).getAppData(userEmail));
+        if(!json) return; let data = JSON.parse(json); appDataCache = data;
+        
+        let selKmrProp = document.getElementById('kmr-nama-properti'); if(selKmrProp) { selKmrProp.innerHTML='<option value="">Pilih</option>'; data.properti.forEach(p=>selKmrProp.innerHTML+=`<option value="${p[1]}">${p[1]}</option>`); }
+        let selPnyProp = document.getElementById('pny-properti'); if(selPnyProp) { selPnyProp.innerHTML='<option value="">Pilih</option>'; data.properti.forEach(p=>selPnyProp.innerHTML+=`<option value="${p[1]}">${p[1]}</option>`); }
+        let selPayPny = document.getElementById('pay-penyewa'); if(selPayPny) { selPayPny.innerHTML='<option value="">Pilih</option>'; data.penyewa.forEach(p=>selPayPny.innerHTML+=`<option value="${p[0]}">${p[3]} (${p[0]})</option>`); }
+
+        let totIn=0, totOut=0; data.pembayaran.forEach(p => totIn += Number(p[3] || 0)); data.pengeluaran.forEach(p => totOut += Number(p[4] || 0));
+        document.getElementById('dash-pemasukan').innerText = "Rp " + totIn.toLocaleString('id-ID'); document.getElementById('dash-pengeluaran').innerText = "Rp " + totOut.toLocaleString('id-ID'); document.getElementById('dash-total-prop').innerText = data.properti.length; document.getElementById('dash-total-kmr').innerText = data.kamar.length;
+
+        let hc = document.getElementById('container-daftar-properti');
+        if(hc) {
+          hc.innerHTML = '';
+          data.properti.forEach(prop => {
+            let pNama = prop[1], pAlamat = prop[8], filteredKamar = data.kamar.filter(k => k[1] === pNama), kamarHtml = "";
+            if(filteredKamar.length === 0) { kamarHtml = `<div class="text-muted small">Belum ada kamar.</div>`; } 
+            else { filteredKamar.forEach(kmr => { kamarHtml += `<div class="col-md-6"><div class="card p-2 shadow-none bg-light border" onclick="showDetail('Kamar', '${kmr[0]}')" style="cursor:pointer;"><div class="d-flex justify-content-between"><h6>${kmr[2]}</h6><span class="badge ${kmr[5]==='Tersedia'?'bg-success':'bg-danger'}">${kmr[5]}</span></div><div class="small fw-bold text-primary">Rp ${Number(kmr[4]).toLocaleString()}</div></div></div>`; }); }
+            hc.innerHTML += `<div class="col-12 mb-3"><div class="card p-3 shadow-sm border-0"><h6 class="fw-bold text-primary" onclick="showDetail('Properti', '${prop[0]}')" style="cursor:pointer;">${pNama} <span class="text-muted small fw-normal">(${pAlamat})</span></h6><div class="row g-2 mt-1">${kamarHtml}</div></div></div>`;
+          });
+        }
+        renderProperti(data.properti); renderKamar(data.kamar); renderPenyewa(data.penyewa); renderPembayaran(data.pembayaran, data.penyewa); renderPengeluaran(data.pengeluaran);
+      } catch(e) { showToast("Koneksi gagal. " + e.message, false); }
+    }
+
+    function renderProperti(data) {
+      let tb = document.getElementById('tb-properti'), cd = document.getElementById('cd-properti'); if(!tb) return; tb.innerHTML=''; cd.innerHTML='';
+      if(data.length===0){ tb.innerHTML='<tr><td colspan="5" class="text-center">Kosong</td></tr>'; return; }
+      data.forEach(p => {
+        let btnView = `<button class="btn btn-sm btn-outline-info me-1" onclick="showDetail('Properti', '${p[0]}')"><i class="bi bi-eye"></i></button>`;
+        let btnAct = currentUser && currentUser.role!=='Tamu' ? `<button class="btn btn-sm btn-outline-secondary me-1" onclick="editProperti('${p[0]}')"><i class="bi bi-pencil"></i></button><button class="btn btn-sm btn-outline-danger" onclick="askDelete('Properti','${p[0]}')"><i class="bi bi-trash"></i></button>` : '';
+        tb.innerHTML += `<tr><td class="fw-bold text-primary">${p[1]}</td><td>${p[8]}</td><td>${p[9]}</td><td>${p[10]}</td><td class="text-center">${btnView}${btnAct}</td></tr>`;
+        cd.innerHTML += `<div class="card mb-2 shadow-sm border-0 position-relative"><div class="card-body pb-2" onclick="showDetail('Properti', '${p[0]}')" style="cursor:pointer;"><h6 class="fw-bold text-primary mb-1">${p[1]}</h6><p class="small text-muted mb-0">${p[8]}</p></div>${btnAct?`<div class="card-footer bg-white border-0 text-end py-2">${btnAct}</div>`:''}</div>`;
+      });
+    }
+
+    function renderKamar(data) {
+      let tb = document.getElementById('tb-kamar'), cd = document.getElementById('cd-kamar'); if(!tb) return; tb.innerHTML=''; cd.innerHTML='';
+      if(data.length===0){ tb.innerHTML='<tr><td colspan="5" class="text-center">Kosong</td></tr>'; return; }
+      let grouped = {}; data.forEach(p => { let propName = p[1]; if(!grouped[propName]) grouped[propName] = []; grouped[propName].push(p); });
+
+      for (let propName in grouped) {
+        let propData = appDataCache.properti.find(x => x[1] === propName); let propId = propData ? propData[0] : '';
+        let onClickProp = propId ? `onclick="showDetail('Properti', '${propId}')" style="cursor:pointer;"` : '';
+        tb.innerHTML += `<tr class="table-secondary"><td colspan="5" class="fw-bold text-primary" ${onClickProp}><i class="bi bi-building me-1"></i> ${propName}</td></tr>`;
+        cd.innerHTML += `<div class="mt-3 mb-2 px-2 fw-bold text-primary" ${onClickProp}><i class="bi bi-building me-1"></i> ${propName}</div>`;
+        grouped[propName].forEach(p => {
+          let btnView = `<button class="btn btn-sm btn-outline-info me-1" onclick="showDetail('Kamar', '${p[0]}')"><i class="bi bi-eye"></i></button>`;
+          let btnAct = currentUser && currentUser.role!=='Tamu' ? `<button class="btn btn-sm btn-outline-secondary me-1" onclick="editKamar('${p[0]}')"><i class="bi bi-pencil"></i></button><button class="btn btn-sm btn-outline-danger" onclick="askDelete('Kamar','${p[0]}')"><i class="bi bi-trash"></i></button>` : '';
+          tb.innerHTML += `<tr><td class="text-muted ps-4">└ ${p[2]}</td><td>Rp ${Number(p[4]).toLocaleString()}</td><td><span class="badge ${p[5]==='Tersedia'?'bg-success':'bg-danger'}">${p[5]}</span></td><td class="text-center">${btnView}${btnAct}</td></tr>`;
+          cd.innerHTML += `<div class="card mb-2 shadow-sm border-0 position-relative ms-2"><div class="card-body pb-2" onclick="showDetail('Kamar', '${p[0]}')" style="cursor:pointer;"><div class="d-flex justify-content-between"><h6 class="fw-bold mb-1">${p[2]}</h6><span class="badge ${p[5]==='Tersedia'?'bg-success':'bg-danger'}">${p[5]}</span></div><p class="small mb-0 text-primary fw-bold">Rp ${Number(p[4]).toLocaleString()}</p></div>${btnAct?`<div class="card-footer bg-white border-0 text-end py-2">${btnAct}</div>`:''}</div>`;
+        });
+      }
+    }
+
+    function renderPenyewa(data) {
+      let tb = document.getElementById('tb-penyewa'), cd = document.getElementById('cd-penyewa'); if(!tb) return; tb.innerHTML=''; cd.innerHTML='';
+      if(data.length===0){ tb.innerHTML='<tr><td colspan="4" class="text-center">Kosong</td></tr>'; return; }
+      data.forEach(p => {
+        let btnView = `<button class="btn btn-sm btn-outline-info me-1" onclick="showDetail('Penyewa', '${p[0]}')"><i class="bi bi-eye"></i></button>`;
+        let btnAct = currentUser && currentUser.role!=='Tamu' ? `<button class="btn btn-sm btn-outline-secondary me-1" onclick="editPenyewa('${p[0]}')"><i class="bi bi-pencil"></i></button><button class="btn btn-sm btn-outline-danger" onclick="askDelete('Penyewa','${p[0]}')"><i class="bi bi-trash"></i></button>` : '';
+        tb.innerHTML += `<tr><td class="fw-bold">${p[3]}</td><td>${p[12]} - ${p[13]}</td><td>${p[10]}</td><td class="text-center">${btnView}${btnAct}</td></tr>`;
+        cd.innerHTML += `<div class="card mb-2 shadow-sm border-0 position-relative"><div class="card-body pb-2" onclick="showDetail('Penyewa', '${p[0]}')" style="cursor:pointer;"><h6 class="fw-bold mb-1">${p[3]}</h6><p class="small text-muted mb-0">${p[12]} - ${p[13]} | Telp: ${p[10]}</p></div>${btnAct?`<div class="card-footer bg-white border-0 text-end py-2">${btnAct}</div>`:''}</div>`;
+      });
+    }
+
+    function renderPembayaran(data, pnyData) {
+      let tb = document.getElementById('tb-pembayaran'), cd = document.getElementById('cd-pembayaran'); if(!tb) return; tb.innerHTML=''; cd.innerHTML='';
+      if(data.length===0){ tb.innerHTML='<tr><td colspan="5" class="text-center">Kosong</td></tr>'; return; }
+      data.forEach(p => {
+        let namaPny = pnyData.find(x => x[0] === p[2]); namaPny = namaPny ? namaPny[3] : p[2];
+        let btnView = `<button class="btn btn-sm btn-outline-info me-1" onclick="showDetail('Pembayaran', '${p[0]}')"><i class="bi bi-eye"></i></button>`;
+        let btnAct = currentUser && currentUser.role!=='Tamu' ? `<button class="btn btn-sm btn-outline-secondary me-1" onclick="editPembayaran('${p[0]}')"><i class="bi bi-pencil"></i></button><button class="btn btn-sm btn-outline-danger" onclick="askDelete('Pembayaran','${p[0]}')"><i class="bi bi-trash"></i></button>` : '';
+        tb.innerHTML += `<tr><td class="fw-bold">${p[0]}</td><td>${p[1]}</td><td>${namaPny}</td><td>Rp ${Number(p[3]).toLocaleString()}</td><td class="text-center">${btnView}${btnAct}</td></tr>`;
+        cd.innerHTML += `<div class="card mb-2 shadow-sm border-0 position-relative"><div class="card-body pb-2" onclick="showDetail('Pembayaran', '${p[0]}')" style="cursor:pointer;"><div class="d-flex justify-content-between"><h6 class="fw-bold mb-1">${p[0]}</h6><span class="small text-muted">${p[1]}</span></div><p class="small mb-1 text-muted">${namaPny}</p><h6 class="text-success fw-bold mb-0">Rp ${Number(p[3]).toLocaleString()}</h6></div>${btnAct?`<div class="card-footer bg-white border-0 text-end py-2">${btnAct}</div>`:''}</div>`;
+      });
+    }
+
+    function renderPengeluaran(data) {
+      let tb = document.getElementById('tb-pengeluaran'), cd = document.getElementById('cd-pengeluaran'); if(!tb) return; tb.innerHTML=''; cd.innerHTML='';
+      if(data.length===0){ tb.innerHTML='<tr><td colspan="6" class="text-center">Kosong</td></tr>'; return; }
+      data.forEach(p => {
+        let btnView = `<button class="btn btn-sm btn-outline-info me-1" onclick="showDetail('Pengeluaran', '${p[0]}')"><i class="bi bi-eye"></i></button>`;
+        let btnAct = currentUser && currentUser.role!=='Tamu' ? `<button class="btn btn-sm btn-outline-secondary me-1" onclick="editPengeluaran('${p[0]}')"><i class="bi bi-pencil"></i></button><button class="btn btn-sm btn-outline-danger" onclick="askDelete('Pengeluaran','${p[0]}')"><i class="bi bi-trash"></i></button>` : '';
+        tb.innerHTML += `<tr><td class="fw-bold">${p[0]}</td><td>${p[1]}</td><td>${p[2]}</td><td>${p[3]}</td><td>Rp ${Number(p[4]).toLocaleString()}</td><td class="text-center">${btnView}${btnAct}</td></tr>`;
+        cd.innerHTML += `<div class="card mb-2 shadow-sm border-0 position-relative"><div class="card-body pb-2" onclick="showDetail('Pengeluaran', '${p[0]}')" style="cursor:pointer;"><div class="d-flex justify-content-between"><h6 class="fw-bold mb-1">${p[0]}</h6><span class="small text-muted">${p[1]}</span></div><p class="small mb-1 text-muted">${p[2]}</p><h6 class="text-danger fw-bold mb-0">Rp ${Number(p[4]).toLocaleString()}</h6></div>${btnAct?`<div class="card-footer bg-white border-0 text-end py-2">${btnAct}</div>`:''}</div>`;
+      });
+    }
+
+    function filterKamarPenyewa() { let propVal = document.getElementById('pny-properti').value; let kmrSelect = document.getElementById('pny-kamar'); kmrSelect.innerHTML = '<option value="">Pilih</option>'; if(propVal && appDataCache.kamar) appDataCache.kamar.filter(k => k[1] === propVal && k[5] === 'Tersedia').forEach(k => { kmrSelect.innerHTML += `<option value="${k[2]}">${k[2]} (Rp ${Number(k[4]).toLocaleString()})</option>`; }); }
+    function autoFillPembayaran() { let pywId = document.getElementById('pay-penyewa').value; if(!pywId) { document.getElementById('pay-jumlah').value = ''; return; } let pny = appDataCache.penyewa.find(p => p[0] === pywId); if(pny) { let kmr = appDataCache.kamar.find(k => k[1] === pny[12] && k[2] === pny[13]); if(kmr) document.getElementById('pay-jumlah').value = kmr[4]; } }
+    function generateInvoiceNum() { document.getElementById('pay-invoice').value = "INV-" + new Date().getTime(); }
+    function generateExpenseNum() { document.getElementById('exp-id').value = "EXP-" + new Date().getTime(); }
+
+    async function submitProperti() { try { let fileIn = document.getElementById('prop-photos-input'); let uploadedUrls = []; let converted = await getBase64Files(fileIn); for(let f of converted) { let url = await fetchAPI('uploadImage', {data: f.data, name: f.name}); if(url) uploadedUrls.push(url); } let fas = []; document.querySelectorAll('input[name="prop-fas"]:checked').forEach(c => fas.push(c.value)); let pl = { id: document.getElementById('prop-id').value, nama: document.getElementById('prop-nama').value, koordinat: document.getElementById('prop-koordinat').value, phone: document.getElementById('prop-phone').value, provinsi: document.getElementById('prop-provinsi').value, kabupaten: document.getElementById('prop-kabupaten').value, kecamatan: document.getElementById('prop-kecamatan').value, kelurahan: document.getElementById('prop-kelurahan').value, kodepos: document.getElementById('prop-kodepos').value, alamat: document.getElementById('prop-alamat').value, fasilitas: fas, photos: uploadedUrls, userEmail: currentUser.email }; let res = await fetchAPI('simpanProperti', pl); showToast(res, true); closeModal('modalProperti'); loadDashboardAndLists(); } catch(e) { showToast(e.message, false); } }
+    async function submitKamar() { try { let fileIn = document.getElementById('kmr-photos-input'); let uploadedUrls = []; let converted = await getBase64Files(fileIn); for(let f of converted) { let url = await fetchAPI('uploadImage', {data: f.data, name: f.name}); if(url) uploadedUrls.push(url); } let fas = []; document.querySelectorAll('input[name="kmr-fas"]:checked').forEach(c => fas.push(c.value)); let pl = { id: document.getElementById('kmr-id').value, namaProperti: document.getElementById('kmr-nama-properti').value, namaKamar: document.getElementById('kmr-nama').value, harga: document.getElementById('kmr-harga').value, status: document.getElementById('kmr-status').value, deskripsi: document.getElementById('kmr-deskripsi').value, fasilitas: fas, photos: uploadedUrls, userEmail: currentUser.email }; let res = await fetchAPI('simpanKamar', pl); showToast(res, true); closeModal('modalKamar'); loadDashboardAndLists(); } catch(e) { showToast(e.message, false); } }
+    async function submitPenyewa() { try { let fileIn = document.getElementById('pny-photo-ktp-input'); let converted = await getBase64Files(fileIn); let ktpUrl = ""; if(converted.length > 0) { ktpUrl = await fetchAPI('uploadImage', {data: converted[0].data, name: converted[0].name}); } let pl = { id: document.getElementById('pny-id').value, properti: document.getElementById('pny-properti').value, kamar: document.getElementById('pny-kamar').value, noKtp: document.getElementById('pny-ktp').value, nama: document.getElementById('pny-nama').value, phone: document.getElementById('pny-phone').value, email: document.getElementById('pny-email').value, provinsi: document.getElementById('pny-provinsi').value, kabupaten: document.getElementById('pny-kabupaten').value, kecamatan: document.getElementById('pny-kecamatan').value, kelurahan: document.getElementById('pny-kelurahan').value, kodepos: document.getElementById('pny-kodepos').value, alamat: document.getElementById('pny-alamat').value, photoKtp: ktpUrl, userEmail: currentUser.email }; let res = await fetchAPI('simpanPenyewa', pl); showToast(res, true); closeModal('modalPenyewa'); loadDashboardAndLists(); } catch(e) { showToast(e.message, false); } }
+    async function submitPembayaran() { try { let pl = { id: document.getElementById('pay-id').value, noInvoice: document.getElementById('pay-invoice').value, tanggal: document.getElementById('pay-tanggal').value, idPenyewa: document.getElementById('pay-penyewa').value, caraPembayaran: document.getElementById('pay-cara').value, jumlah: document.getElementById('pay-jumlah').value, userEmail: currentUser.email }; let res = await fetchAPI('simpanPembayaran', pl); showToast(res, true); closeModal('modalPembayaran'); loadDashboardAndLists(); } catch(e) { showToast(e.message, false); } }
+    async function submitPengeluaran() { try { let fileIn = document.getElementById('exp-photo-input'); let converted = await getBase64Files(fileIn); let expUrl = ""; if(converted.length > 0) { expUrl = await fetchAPI('uploadImage', {data: converted[0].data, name: converted[0].name}); } let pl = { id: document.getElementById('exp-id-hidden').value, idPengeluaran: document.getElementById('exp-id').value, tanggal: document.getElementById('exp-tanggal').value, jenis: document.getElementById('exp-jenis').value, jumlah: document.getElementById('exp-jumlah').value, keterangan: document.getElementById('exp-keterangan').value, photo: expUrl, userEmail: currentUser.email }; let res = await fetchAPI('simpanPengeluaran', pl); showToast(res, true); closeModal('modalPengeluaran'); loadDashboardAndLists(); } catch(e) { showToast(e.message, false); } }
+  </script>
 </body>
 </html>
-
