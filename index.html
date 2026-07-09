@@ -9,22 +9,30 @@
   <style>
     body { font-family: 'Segoe UI', system-ui, sans-serif; background-color: #f4f6f9; overflow-x: hidden; }
     .top-bar { display: none; position: fixed; top: 0; width: 100%; z-index: 1050; height: 60px; }
+    
+    /* BOTTOM NAV */
     .bottom-nav { display: none; position: fixed; bottom: 0; width: 100%; background: #ffffff; box-shadow: 0 -3px 15px rgba(0,0,0,0.08); z-index: 1050; border-top: 1px solid #e2e8f0; }
     .bottom-nav .nav-item { background: transparent !important; text-align: center; padding: 10px 0 5px 0; font-size: 11px; flex: 1; color: #94a3b8; text-decoration: none; cursor: pointer; transition: 0.2s; border: none !important; outline: none !important; }
     .bottom-nav .nav-item i { font-size: 1.4rem; display: block; margin-bottom: 2px; transition: 0.2s; }
     .bottom-nav .nav-item.active, .bottom-nav .nav-item:hover { color: #3b82f6; font-weight: 600; }
     .bottom-nav .nav-item.active i { color: #3b82f6; transform: translateY(-2px); }
+    
+    /* SIDEBAR (DESKTOP) */
     .sidebar { height: 100vh; position: fixed; width: 260px; background-color: #ffffff; z-index: 1040; box-shadow: 2px 0 10px rgba(0,0,0,0.05); border-right: 1px solid #e2e8f0; display: flex; flex-direction: column; }
     .sidebar-brand { color: #1e293b; font-weight: bold; text-align: center; padding: 20px 10px; font-size: 1.2rem; border-bottom: 1px solid #e2e8f0; }
+    
     .menu-link { color: #475569; text-decoration: none; padding: 12px 25px; display: block; font-size: 0.95rem; border-left: 4px solid transparent; transition: 0.2s; cursor: pointer; }
     .menu-link:hover, .menu-link.active { background-color: #f1f5f9; color: #3b82f6; border-left-color: #3b82f6; font-weight: 600; }
     .logout-link { color: #dc3545; text-decoration: none; padding: 15px 25px; display: block; font-size: 0.95rem; cursor: pointer; transition: 0.2s; }
     .logout-link:hover { background-color: #fef2f2; color: #dc3545; }
+    
     .main-content { margin-left: 260px; padding: 30px; transition: 0.3s; }
+    
     .btn-float { position: fixed; bottom: 30px; right: 30px; z-index: 1030; width: 55px; height: 55px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; box-shadow: 0 4px 10px rgba(0,0,0,0.25); transition: transform 0.2s; }
     .btn-float:hover { transform: scale(1.1); }
     .carousel-item img { height: 220px; object-fit: cover; border-radius: 8px; }
     .card-dashboard { border-radius: 12px; border: none; box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
+
     @media (max-width: 768px) {
       .sidebar { display: none !important; }
       .top-bar { display: flex !important; align-items: center; justify-content: flex-start; }
@@ -36,16 +44,15 @@
 </head>
 <body>
 
-  <!-- TOAST NOTIFICATION -->
+  <!-- LOADING OVERLAY UNTUK FETCH API -->
+  <div id="loadingOverlay" class="position-fixed w-100 h-100 d-none justify-content-center align-items-center" style="background: rgba(255,255,255,0.8); z-index: 9999; top: 0; left: 0;">
+    <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;"></div>
+  </div>
+
   <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1080;">
     <div id="appToast" class="toast align-items-center text-white border-0 shadow" role="alert" aria-live="assertive" aria-atomic="true">
       <div class="d-flex"><div class="toast-body fw-semibold px-3 py-2 fs-6" id="toastMessage"></div><button type="button" class="btn-close btn-close-white me-3 m-auto" data-bs-dismiss="toast"></button></div>
     </div>
-  </div>
-
-  <!-- OVERLAY LOADING -->
-  <div id="loadingOverlay" class="position-fixed w-100 h-100 d-none justify-content-center align-items-center" style="background: rgba(255,255,255,0.8); z-index: 9999; top: 0; left: 0;">
-    <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;"></div>
   </div>
 
   <!-- VIEW: LOGIN -->
@@ -68,12 +75,55 @@
 
   <!-- APLIKASI UTAMA -->
   <div id="main-app-layout" class="d-none">
-    <div class="top-bar bg-white shadow-sm px-3 border-bottom d-md-none"><button class="btn btn-light me-3 border-0 bg-transparent" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarOffcanvasMobile"><i class="bi bi-list fs-3 text-dark"></i></button><h5 class="m-0 fw-bold text-dark text-start" id="mobile-top-title">Dashboard</h5></div>
-    <div class="bottom-nav d-md-none"><a class="nav-item menu-link active" onclick="navigate('dash')"><i class="bi bi-speedometer2"></i>Dash</a><a class="nav-item menu-link admin-only" onclick="navigate('properti')"><i class="bi bi-building"></i>Properti</a><a class="nav-item menu-link admin-only" onclick="navigate('kamar')"><i class="bi bi-door-open"></i>Kamar</a><a class="nav-item menu-link admin-only" onclick="navigate('penyewa')"><i class="bi bi-people"></i>Penyewa</a></div>
     
-    <div class="sidebar d-none d-md-flex"><div class="sidebar-brand"><i class="bi bi-house-gear-fill me-2 text-primary"></i>KOS MANAGER</div><div class="flex-grow-1 overflow-auto pt-3"><a class="menu-link active" onclick="navigate('dash')"><i class="bi bi-speedometer2 me-2"></i> Dashboard</a><a class="menu-link admin-only" onclick="navigate('properti')"><i class="bi bi-building me-2"></i> Properti</a><a class="menu-link admin-only" onclick="navigate('kamar')"><i class="bi bi-door-open me-2"></i> Kamar</a><a class="menu-link admin-only" onclick="navigate('penyewa')"><i class="bi bi-people me-2"></i> Penyewa</a><a class="menu-link admin-only" onclick="navigate('pembayaran')"><i class="bi bi-wallet2 me-2"></i> Pembayaran</a><a class="menu-link admin-only" onclick="navigate('pengeluaran')"><i class="bi bi-graph-down-arrow me-2"></i> Pengeluaran</a></div><div class="border-top border-secondary-subtle mt-auto pb-4 pt-2"><a class="logout-link" onclick="logout()"><i class="bi bi-box-arrow-right me-2"></i> Keluar</a></div></div>
-    
-    <div class="offcanvas offcanvas-start bg-white d-md-none" tabindex="-1" id="sidebarOffcanvasMobile" style="width: 260px; z-index: 1060;"><div class="offcanvas-header border-bottom border-secondary-subtle"><h5 class="offcanvas-title text-dark fw-bold"><i class="bi bi-house-gear-fill me-2 text-primary"></i>Kos Manager</h5><button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button></div><div class="offcanvas-body p-0 d-flex flex-column h-100 pb-4"><div class="pt-2"><a class="menu-link admin-only" onclick="navigate('pembayaran')" data-bs-dismiss="offcanvas"><i class="bi bi-wallet2 me-2"></i> Pembayaran</a><a class="menu-link admin-only" onclick="navigate('pengeluaran')" data-bs-dismiss="offcanvas"><i class="bi bi-graph-down-arrow me-2"></i> Pengeluaran</a></div><div class="border-top border-secondary-subtle mt-2 pt-2"><a class="logout-link" onclick="logout()" data-bs-dismiss="offcanvas"><i class="bi bi-box-arrow-right me-2"></i> Keluar</a></div></div></div>
+    <!-- MOBILE TOP BAR -->
+    <div class="top-bar bg-white shadow-sm px-3 border-bottom d-md-none">
+      <button class="btn btn-light me-3 border-0 bg-transparent" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarOffcanvasMobile"><i class="bi bi-list fs-3 text-dark"></i></button>
+      <h5 class="m-0 fw-bold text-dark text-start" id="mobile-top-title">Dashboard</h5>
+    </div>
+
+    <!-- MOBILE BOTTOM NAV (4 Item) -->
+    <div class="bottom-nav d-md-none">
+      <a class="nav-item menu-link active" onclick="navigate('dash')"><i class="bi bi-speedometer2"></i>Dash</a>
+      <a class="nav-item menu-link admin-only" onclick="navigate('properti')"><i class="bi bi-building"></i>Properti</a>
+      <a class="nav-item menu-link admin-only" onclick="navigate('kamar')"><i class="bi bi-door-open"></i>Kamar</a>
+      <a class="nav-item menu-link admin-only" onclick="navigate('penyewa')"><i class="bi bi-people"></i>Penyewa</a>
+    </div>
+
+    <!-- DESKTOP SIDEBAR -->
+    <div class="sidebar d-none d-md-flex">
+      <div class="sidebar-brand"><i class="bi bi-house-gear-fill me-2 text-primary"></i>KOS MANAGER</div>
+      <div class="flex-grow-1 overflow-auto pt-3">
+        <a class="menu-link active" onclick="navigate('dash')"><i class="bi bi-speedometer2 me-2"></i> Dashboard</a>
+        <a class="menu-link admin-only" onclick="navigate('properti')"><i class="bi bi-building me-2"></i> Properti</a>
+        <a class="menu-link admin-only" onclick="navigate('kamar')"><i class="bi bi-door-open me-2"></i> Kamar</a>
+        <a class="menu-link admin-only" onclick="navigate('penyewa')"><i class="bi bi-people me-2"></i> Penyewa</a>
+        <a class="menu-link admin-only" onclick="navigate('pembayaran')"><i class="bi bi-wallet2 me-2"></i> Pembayaran</a>
+        <a class="menu-link admin-only" onclick="navigate('pengeluaran')"><i class="bi bi-graph-down-arrow me-2"></i> Pengeluaran</a>
+      </div>
+      <!-- LOGOUT DESKTOP -->
+      <div class="border-top border-secondary-subtle mt-auto pb-4 pt-2">
+        <a class="logout-link" onclick="logout()"><i class="bi bi-box-arrow-right me-2"></i> Keluar</a>
+      </div>
+    </div>
+
+    <!-- MOBILE OFFCANVAS SIDEBAR (BOTTOM SHEET) -->
+    <div class="offcanvas offcanvas-bottom bg-white d-md-none rounded-top-4 shadow" tabindex="-1" id="sidebarOffcanvasMobile" style="height: auto; max-height: 50vh; z-index: 1060;">
+      <div class="offcanvas-header border-bottom border-secondary-subtle pt-3 pb-2 px-4">
+        <h6 class="offcanvas-title text-dark fw-bold mb-0">Menu Lainnya</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+      </div>
+      <div class="offcanvas-body p-0 d-flex flex-column">
+        <div class="flex-grow-1 py-2">
+          <a class="menu-link admin-only" onclick="navigate('pembayaran')" data-bs-dismiss="offcanvas"><i class="bi bi-wallet2 me-2"></i> Pembayaran</a>
+          <a class="menu-link admin-only" onclick="navigate('pengeluaran')" data-bs-dismiss="offcanvas"><i class="bi bi-graph-down-arrow me-2"></i> Pengeluaran</a>
+        </div>
+        <!-- LOGOUT MOBILE -->
+        <div class="border-top border-secondary-subtle">
+          <a class="logout-link py-3 px-4" onclick="logout()" data-bs-dismiss="offcanvas"><i class="bi bi-box-arrow-right me-2"></i> Keluar Aplikasi</a>
+        </div>
+      </div>
+    </div>
 
     <!-- MAIN CONTENT -->
     <div class="main-content">
@@ -98,6 +148,7 @@
   <div class="modal fade" id="modalPembayaran" tabindex="-1"><div class="modal-dialog modal-dialog-scrollable"><div class="modal-content"><div class="modal-header bg-light"><h5 class="modal-title fw-bold">Form Pembayaran</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><form id="form-pembayaran"><input type="hidden" id="pay-id"><div class="row"><div class="col-md-6 mb-3"><label class="form-label small">No Invoice</label><input type="text" id="pay-invoice" class="form-control" readonly></div><div class="col-md-6 mb-3"><label class="form-label small fw-semibold">Tanggal</label><input type="date" id="pay-tanggal" class="form-control"></div></div><div class="mb-3"><label class="form-label small">Penyewa</label><select id="pay-penyewa" class="form-select" onchange="autoFillPembayaran()"></select></div><div class="mb-3"><label class="form-label small">Cara Pembayaran</label><select id="pay-cara" class="form-select"><option value="Transfer">Transfer</option><option value="Cash">Cash</option></select></div><div class="mb-4"><label class="form-label small">Jumlah (Rp)</label><input type="number" id="pay-jumlah" class="form-control"></div><button type="button" class="btn btn-success w-100" onclick="submitPembayaran()">Simpan Pembayaran</button></form></div></div></div></div>
   <div class="modal fade" id="modalPengeluaran" tabindex="-1"><div class="modal-dialog modal-dialog-scrollable"><div class="modal-content"><div class="modal-header bg-light"><h5 class="modal-title fw-bold">Form Pengeluaran</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><form id="form-pengeluaran"><input type="hidden" id="exp-id-hidden"><div class="row"><div class="col-md-6 mb-3"><label class="form-label small">ID Pengeluaran</label><input type="text" id="exp-id" class="form-control" readonly></div><div class="col-md-6 mb-3"><label class="form-label small fw-semibold">Tanggal</label><input type="date" id="exp-tanggal" class="form-control"></div></div><div class="row"><div class="col-md-6 mb-3"><label class="form-label small">Jenis</label><select id="exp-jenis" class="form-select"><option value="Listrik/Air">Listrik/Air</option><option value="Perbaikan">Perbaikan</option><option value="Lainnya">Lainnya</option></select></div><div class="col-md-6 mb-3"><label class="form-label small">Jumlah (Rp)</label><input type="number" id="exp-jumlah" class="form-control"></div></div><div class="mb-3"><label class="form-label small">Keterangan</label><input type="text" id="exp-keterangan" class="form-control"></div><div class="mb-4"><label class="form-label small">Bukti/Nota</label><input type="file" id="exp-photo-input" class="form-control"></div><button type="button" class="btn btn-danger w-100" onclick="submitPengeluaran()">Catat Pengeluaran</button></form></div></div></div></div>
   
+  <!-- MODAL DETAIL VIEW UNIVERSAL -->
   <div class="modal fade" id="modalDetail" tabindex="-1"><div class="modal-dialog modal-dialog-centered modal-dialog-scrollable"><div class="modal-content"><div class="modal-header bg-light"><h5 class="modal-title fw-bold text-primary" id="modalDetailTitle">Rincian Data</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body" id="modalDetailBody"></div></div></div></div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -106,7 +157,7 @@
     // ==============================================================
     // KONFIGURASI API (GANTI URL INI DENGAN URL WEB APP ANDA)
     // ==============================================================
-    const API_URL = "https://script.google.com/macros/s/AKfycbynMuH4LB7ALrg4ytxUI-gYmzEff85aamY-VAlMIi9MR2sPLYEuMp4grl_kpqP_PHe46A/exec";
+    const API_URL = "https://script.google.com/macros/s/AKfycbzLpd2AKcRo6rQGuwNWhUgOp8djdfe5HZmKG7oZ0d6vGzESgs7a7qAM4OKPGXJwajWbBg/exec";
     
     let masterWilayah = []; let appDataCache = {}; let currentUser = null;
 
@@ -210,8 +261,8 @@
     async function loadDashboardAndLists() {
       let userEmail = currentUser ? currentUser.email : "";
       try {
-        let json = await new Promise((res, rej) => google.script.run.withSuccessHandler(res).withFailureHandler(rej).getAppData(userEmail));
-        if(!json) return; let data = JSON.parse(json); appDataCache = data;
+        let json = await fetchAPI('getAppData', {userEmail: userEmail});
+        if(!json) return; let data = typeof json === 'string' ? JSON.parse(json) : json; appDataCache = data;
         
         let selKmrProp = document.getElementById('kmr-nama-properti'); if(selKmrProp) { selKmrProp.innerHTML='<option value="">Pilih</option>'; data.properti.forEach(p=>selKmrProp.innerHTML+=`<option value="${p[1]}">${p[1]}</option>`); }
         let selPnyProp = document.getElementById('pny-properti'); if(selPnyProp) { selPnyProp.innerHTML='<option value="">Pilih</option>'; data.properti.forEach(p=>selPnyProp.innerHTML+=`<option value="${p[1]}">${p[1]}</option>`); }
@@ -231,7 +282,7 @@
           });
         }
         renderProperti(data.properti); renderKamar(data.kamar); renderPenyewa(data.penyewa); renderPembayaran(data.pembayaran, data.penyewa); renderPengeluaran(data.pengeluaran);
-      } catch(e) { showToast("Koneksi gagal. " + e.message, false); }
+      } catch(e) { showToast("Gagal memuat data: " + e.message, false); }
     }
 
     function renderProperti(data) {
